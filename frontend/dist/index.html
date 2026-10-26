@@ -1,0 +1,104 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Календарь соревнований</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px Inter,Segoe UI,sans-serif;color:#1e293b;background:#fff}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #e5e7eb}
+.logo{width:36px;height:36px;border-radius:10px;background:#1e293b;color:#fff;display:grid;place-items:center;margin-right:12px}
+.row{display:flex;align-items:center}.btn{border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:6px 12px}
+.btn.dark{background:#1e293b;color:#fff;border-color:#1e293b}.btn.green{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}.btn.red{background:#fef2f2;color:#dc2626;border-color:#fecaca}
+.btn:disabled{background:#e5e7eb;color:#9ca3af;cursor:default}
+.tabs{display:flex;background:#f1f5f9;border-radius:14px;padding:4px;gap:4px}.tabs button{border:0;background:none;padding:8px 18px;border-radius:10px;color:#64748b}.tabs .on{background:#fff;color:#1e293b;box-shadow:0 1px 3px #0002}
+.legend{display:flex;justify-content:center;gap:24px;padding:12px;background:#f8fafc;border-bottom:1px solid #e5e7eb;font-size:13px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.stats{display:flex;justify-content:center;gap:40px;padding:20px;border-bottom:1px solid #e5e7eb}.stats b{font-size:28px}.stats span{color:#64748b;font-size:12px}
+.cal{padding:24px;display:flex;flex-direction:column;gap:6px;align-items:center}.cal .m{display:flex;align-items:center;height:42px}.cal .ml{width:52px;font-size:12px;color:#94a3b8;text-align:right;margin-right:14px}
+.d{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;font-size:12px;cursor:pointer;color:#92400e}.d.past{color:#cbd5e1}.d.ev{font-weight:700;border:1.5px solid}.d.today{background:#000;color:#fff!important;font-weight:700}
+.bar{padding:10px 24px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#f8fafc;border-bottom:1px solid #e5e7eb}
+input,select,textarea{border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;background:#fff}
+table{width:100%;border-collapse:collapse}th{text-align:left;padding:12px;font-size:13px;border-bottom:1px solid #e5e7eb}td{padding:12px;font-size:13px;color:#475569;border-bottom:1px solid #f1f5f9}tbody tr{cursor:pointer}tbody tr:hover{background:#f8fafc}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;background:#dcfce7;color:#15803d}.badge.no{background:#e5e7eb;color:#64748b}
+.ov{position:fixed;inset:0;background:#0006;backdrop-filter:blur(6px);display:grid;place-items:center;z-index:9}.md{background:#fff;border-radius:20px;width:min(480px,94vw);max-height:92vh;overflow:auto;padding:24px}
+.md h3{margin:0 0 14px}.md label{display:block;font-size:11px;color:#64748b;text-transform:uppercase;margin:12px 0 4px}.md input,.md select,.md textarea{width:100%}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.foot{display:flex;gap:10px;margin-top:20px}.foot .btn{flex:1;padding:10px}.k{font-size:11px;color:#94a3b8;text-transform:uppercase;margin-top:12px}
+.drop{border:2px dashed #cbd5e1;border-radius:14px;padding:50px 20px;text-align:center;cursor:pointer;color:#475569}
+.dd{position:absolute;right:24px;top:70px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px #0002;width:220px;z-index:5;padding:6px}.dd div{padding:8px 10px;display:flex;justify-content:space-between;cursor:pointer;border-radius:8px}.dd div:hover{background:#f1f5f9}
+.gm{text-align:center;font-weight:600;background:#f1f5f9;padding:8px;margin:12px auto 0}.gw{margin:0 auto;width:max-content;max-width:100%;overflow:auto}.gr{display:flex}.gc{width:36px;height:24px;text-align:center;font-size:10px;color:#64748b;border-right:1px solid #f1f5f9}.gc.we{background:#f8fafc}.gc.t{background:#fee2e2;color:#dc2626}.gl{font-size:11px;padding:2px 6px;color:#475569}
+</style></head><body>
+<header><div class="row"><div class="logo">▦</div><b style="font-size:20px;margin-right:12px" id="title"></b><button class="btn" onclick="seasonModal()">⇅ Сезон</button></div>
+<div class="tabs" id="tabs"></div>
+<div class="row" style="gap:10px"><button class="btn green" onclick="importModal()">Импорт</button><button class="btn red" onclick="toggleDel(event)">Удалить ▾</button></div></header>
+<div class="legend" id="legend"></div><div class="stats" id="stats"></div><div id="main"></div><div id="dd"></div><div id="modal"></div>
+<script>
+const A=()=>window.go.main.App,$=s=>document.querySelector(s),pad=n=>String(n).padStart(2,'0');
+const TYPES=[['Международные','#22c55e'],['Всероссийские','#ef4444'],['Межрегиональные','#8b5cf6'],['Региональные','#3b82f6'],['Муниципальные','#f59e0b']];
+const col=t=>(TYPES.find(x=>x[0]==t)||[0,'#94a3b8'])[1];
+const MON=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const GEN=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+let S={events:[],season:{sy:2026,sm:1,ey:2026,em:12},today:''},view='cal',F={q:'',type:'',status:'',sort:'new',show:true},G={lvl:'',mon:'',past:true};
+const fd=i=>i?i.split('-').reverse().join('.'):'';const fl=i=>{const[y,m,d]=i.split('-').map(Number);return d+' '+GEN[m-1]+' '+y+' г.'};
+const dim=(y,m)=>new Date(y,m,0).getDate();const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function months(){const a=[];let y=S.season.sy,m=S.season.sm;while(y*12+m<=S.season.ey*12+S.season.em){a.push([y,m]);if(++m>12){m=1;y++}}return a}
+async function load(){S=await A().GetState();render()}
+function render(){$('#title').textContent=`Сезон ${S.season.sy}–${S.season.ey}`;
+$('#tabs').innerHTML=[['cal','Календарь'],['tab','Таблица'],['gantt','Диаграмма Ганта']].map(([k,n])=>`<button class="${view==k?'on':''}" onclick="view='${k}';render()">${n}</button>`).join('');
+$('#legend').innerHTML=TYPES.map(t=>`<span><i class="dot" style="background:${t[1]}"></i>${t[0]}</span>`).join('');
+const fut=S.events.filter(e=>e.end>=S.today).length;
+$('#stats').innerHTML=`<div><b>${S.events.length}</b> <span>мероприятий</span></div><div><b style="color:#15803d">${fut}</b> <span>впереди</span></div><div><b style="color:#94a3b8">${S.events.length-fut}</b> <span>прошло</span></div>`;
+$('#main').innerHTML=view=='cal'?cal():view=='tab'?tab():gantt();}
+function cal(){return '<div class="cal">'+months().map(([y,m])=>{let h=`<div class="m"><div class="ml">${MON[m-1].slice(0,3).toUpperCase()}</div>`;
+for(let d=1;d<=dim(y,m);d++){const i=`${y}-${pad(m)}-${pad(d)}`,ev=S.events.filter(e=>e.start<=i&&e.end>=i);
+let c='d'+(i<S.today?' past':'')+(ev.length?' ev':'')+(i==S.today?' today':'');const st=ev.length&&i!=S.today?`background:${col(ev[0].type)}22;border-color:${col(ev[0].type)};color:${col(ev[0].type)}`:'';
+h+=`<div class="${c}" style="${st}" title="${esc(ev.map(e=>e.name).join(', '))}" onclick="dayClick('${i}')">${d}</div>`}return h+'</div>'}).join('')+'</div>'}
+function dayClick(i){const ev=S.events.filter(e=>e.start<=i&&e.end>=i);ev.length?detail(ev,i):editModal(null,i)}
+function detail(ev,i){modal(ev.map(e=>`<div style="margin-bottom:18px"><h3>${esc(e.name)}</h3><span class="badge" style="background:${col(e.type)}22;color:${col(e.type)}">${e.type}</span> <span class="badge ${e.status=='Подтверждено'?'':'no'}">${esc(e.status)}</span>
+<div class="k">Дата</div>${fl(e.start)}${e.end!=e.start?' — '+fl(e.end):''}<div class="k">Место</div>${esc(e.city)} ${esc(e.venue)}<div class="k">Возраст</div>${esc(e.age)||'—'}
+${e.features?`<div class="k">Особенности</div>${esc(e.features)}`:''}${e.comment?`<div class="k">Комментарий</div>${esc(e.comment)}`:''}
+<div class="foot"><button class="btn dark" onclick="editModal(null,'${i}')">+ Добавить</button><button class="btn" onclick="editModal('${e.id}')">✎ Изменить</button><button class="btn red" onclick="del('${e.id}')">Удалить</button></div></div>`).join(''))}
+function modal(h){$('#modal').innerHTML=`<div class="ov" onmousedown="if(event.target==this)closeM()"><div class="md">${h}</div></div>`}
+function closeM(){$('#modal').innerHTML=''}
+async function del(id){if(confirm('Удалить мероприятие?')){await A().DeleteEvent(id);closeM();load()}}
+function editModal(id,date){const e=id?S.events.find(x=>x.id==id):{name:'',type:'Региональные',start:date||S.today,end:date||S.today,city:'Красноярск',venue:'',age:'',features:'',comment:'',status:'Подтверждено'};
+const f=(k,l,t='text')=>`<div><label>${l}</label><input id="f_${k}" type="${t}" value="${esc(e[k])}"></div>`;
+modal(`<h3>${id?'Редактирование':'Новое мероприятие'}</h3><label>Название *</label><input id="f_name" value="${esc(e.name)}" oninput="$('#sv').disabled=!this.value.trim()">
+<div class="g2"><div><label>Тип</label><select id="f_type">${TYPES.map(t=>`<option ${t[0]==e.type?'selected':''}>${t[0]}</option>`).join('')}</select></div>
+<div><label>Статус</label><select id="f_status">${['Подтверждено','Не подтверждено'].map(t=>`<option ${t==e.status?'selected':''}>${t}</option>`).join('')}</select></div>
+${f('start','Дата начала','date')}${f('end','Дата конца','date')}${f('city','Город')}${f('venue','Объект')}${f('age','Возраст')}${f('features','Особенности')}</div>
+<label>Комментарий</label><textarea id="f_comment" rows="3">${esc(e.comment)}</textarea>
+<div class="foot"><button class="btn" onclick="closeM()">Отмена</button><button id="sv" class="btn dark" ${e.name?'':'disabled'} onclick="saveEv('${id||''}')">✓ ${id?'Сохранить':'Добавить'}</button></div>`)}
+async function saveEv(id){const o=id?{...S.events.find(x=>x.id==id)}:{};for(const k of['name','type','status','start','end','city','venue','age','features','comment'])o[k]=$('#f_'+k).value;o.id=id;
+try{await A().SaveEvent(o);closeM();load()}catch(e){alert(e)}}
+function tab(){let l=S.events.filter(e=>(!F.q||JSON.stringify(Object.values(e)).toLowerCase().includes(F.q.toLowerCase()))&&(!F.type||e.type==F.type)&&(!F.status||e.status==F.status));
+l.sort((a,b)=>F.sort=='new'?b.start.localeCompare(a.start):a.start.localeCompare(b.start));
+return `<div class="bar"><input id="q" placeholder="Поиск..." value="${esc(F.q)}" style="width:300px" oninput="F.q=this.value;rt()"><span style="flex:1"></span><button class="btn" onclick="F.show=!F.show;render()">Фильтры</button></div>
+${F.show?`<div class="bar" style="background:#fff"><select onchange="F.type=this.value;render()"><option value="">Тип</option>${TYPES.map(t=>`<option ${F.type==t[0]?'selected':''}>${t[0]}</option>`).join('')}</select>
+<select onchange="F.status=this.value;render()"><option value="">Статус</option>${['Подтверждено','Не подтверждено'].map(t=>`<option ${F.status==t?'selected':''}>${t}</option>`).join('')}</select>
+<select onchange="F.sort=this.value;render()"><option value="new">Сначала новые</option><option value="old" ${F.sort=='old'?'selected':''}>Сначала старые</option></select></div>`:''}
+<div id="tb"></div><div class="bar" style="position:fixed;bottom:0;left:0;right:0;border-top:1px solid #e5e7eb">Всего: ${S.events.length} · Показано ${l.length} из ${S.events.length} в сезоне</div>`}
+function rows(){let l=S.events.filter(e=>(!F.q||JSON.stringify(Object.values(e)).toLowerCase().includes(F.q.toLowerCase()))&&(!F.type||e.type==F.type)&&(!F.status||e.status==F.status));
+l.sort((a,b)=>F.sort=='new'?b.start.localeCompare(a.start):a.start.localeCompare(b.start));
+return `<table><thead><tr>${['№','Спорт. статус','Тип','Название','Категория','Дата','Возраст','Город','Объект','Статус','Комментарий'].map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${l.map((e,i)=>`<tr onclick="editModal('${e.id}')"><td>${i+1}</td><td>${esc(e.sportStatus)||'-'}</td><td>${e.type}</td><td><b style="color:#1e293b">${esc(e.name)}</b></td><td>${esc(e.category)||'-'}</td><td>${fd(e.start)}${e.end!=e.start?' – '+fd(e.end):''}</td><td>${esc(e.age)||'-'}</td><td>${esc(e.city)||'-'}</td><td>${esc(e.venue)||'-'}</td><td><span class="badge ${e.status=='Подтверждено'?'':'no'}">${esc(e.status)}</span></td><td>${esc(e.comment)||'-'}</td></tr>`).join('')}</tbody></table>`}
+function rt(){$('#tb').innerHTML=rows()}
+const _r=render;render=function(){_r();if(view=='tab')rt()};
+function gantt(){let ms=months().filter(([y,m])=>!G.mon||G.mon==y+'-'+m);const evs=S.events.filter(e=>(!G.lvl||e.type==G.lvl)&&(G.past||e.end>=S.today));
+return `<div class="bar"><b>${evs.length}</b> мероприятий<span style="flex:1"></span></div><div class="bar" style="background:#fff"><select onchange="G.lvl=this.value;render()"><option value="">Все уровни</option>${TYPES.map(t=>`<option ${G.lvl==t[0]?'selected':''}>${t[0]}</option>`).join('')}</select>
+<select onchange="G.mon=this.value;render()"><option value="">Месяц</option>${months().map(([y,m])=>`<option value="${y}-${m}" ${G.mon==y+'-'+m?'selected':''}>${MON[m-1]} ${y}</option>`).join('')}</select>
+<label><input type="checkbox" ${G.past?'checked':''} onchange="G.past=this.checked;render()"> Показывать прошедшие</label></div>`+
+ms.map(([y,m])=>{const n=dim(y,m),me=evs.filter(e=>e.start<=`${y}-${pad(m)}-${pad(n)}`&&e.end>=`${y}-${pad(m)}-01`);if(!me.length&&!G.mon&&evs.length)return'';
+let h=`<div class="gw"><div class="gm">${MON[m-1]} ${y}</div><div class="gr">`;for(let d=1;d<=n;d++){const i=`${y}-${pad(m)}-${pad(d)}`,w=new Date(y,m-1,d).getDay();h+=`<div class="gc ${i==S.today?'t':w%6==0?'we':''}">${d}</div>`}h+='</div>';
+me.forEach(e=>{h+=`<div class="gl">${esc(e.name)}</div><div class="gr">`;for(let d=1;d<=n;d++){const i=`${y}-${pad(m)}-${pad(d)}`,on=e.start<=i&&e.end>=i;h+=`<div class="gc" style="height:18px;${on?`background:${col(e.type)}`:''}" ${on?`onclick="detail([S.events.find(x=>x.id=='${e.id}')],'${i}')" title="${esc(e.name)}"`:''}></div>`}h+='</div>'});return h+'</div>'}).join('')}
+function importModal(){modal(`<h3>Импорт календарного плана</h3><div style="color:#64748b;font-size:12px;margin-bottom:14px">Загрузите файл Excel (.xlsx, .xls)</div>
+<div class="drop" id="dz" onclick="$('#fi').click()" ondragover="event.preventDefault()" ondrop="event.preventDefault();doImport(event.dataTransfer.files[0])">Перетащите или нажмите для выбора<br><small>.xlsx или .xls</small></div>
+<input type="file" id="fi" hidden accept=".xlsx,.xls" onchange="doImport(this.files[0])"><div class="foot"><button class="btn" onclick="closeM()">Закрыть</button></div>`)}
+function doImport(f){if(!f)return;const r=new FileReader();r.onload=async()=>{try{const n=await A().ImportExcel(r.result.split(',')[1]);closeM();await load();alert('Импортировано мероприятий: '+n)}catch(e){alert(e)}};r.readAsDataURL(f)}
+function toggleDel(e){e.stopPropagation();if($('#dd').innerHTML){$('#dd').innerHTML='';return}const c={};S.events.forEach(x=>{const k=x.start.slice(0,7);c[k]=(c[k]||0)+1});
+$('#dd').innerHTML=`<div class="dd"><div style="color:#dc2626" onclick="delAll()">Удалить всё <span>${S.events.length}</span></div><small style="padding:6px 10px;display:block;color:#64748b">Удалить за месяц:</small>${Object.keys(c).sort().map(k=>`<div onclick="delMonth('${k}')">${MON[+k.slice(5)-1]} ${k.slice(0,4)}<span>${c[k]} шт.</span></div>`).join('')}</div>`}
+document.addEventListener('click',()=>{$('#dd').innerHTML=''});
+async function delAll(){if(S.events.length&&confirm('Удалить все мероприятия?')){await A().DeleteAll();load()}}
+async function delMonth(k){if(confirm('Удалить мероприятия за '+k+'?')){await A().DeleteMonth(k);load()}}
+function seasonModal(){const s=S.season,mo=v=>MON.map((n,i)=>`<option value="${i+1}" ${v==i+1?'selected':''}>${n}</option>`).join('');
+modal(`<h3>Настройка сезона</h3><div class="g2"><div><label>Начало — год</label><input id="sy" type="number" value="${s.sy}"></div><div><label>Начало — месяц</label><select id="sm">${mo(s.sm)}</select></div>
+<div><label>Конец — год</label><input id="ey" type="number" value="${s.ey}"></div><div><label>Конец — месяц</label><select id="em">${mo(s.em)}</select></div></div>
+<div class="foot"><button class="btn" onclick="closeM()">Отмена</button><button class="btn dark" onclick="applySeason()">✓ Применить</button></div>`)}
+async function applySeason(){try{await A().SetSeason({sy:+$('#sy').value,sm:+$('#sm').value,ey:+$('#ey').value,em:+$('#em').value});closeM();load()}catch(e){alert(e)}}
+window.addEventListener('load',()=>{setTimeout(load,150);setInterval(async()=>{const t=await A().Today();if(t!=S.today){S.today=t;render()}},30000)});
+</script></body></html>
